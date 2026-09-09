@@ -1,142 +1,66 @@
-\# Real-Time Audio FFT Spectrum Analyzer
+# Real-Time Audio FFT Spectrum Analyzer
 
+[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PortAudio](https://img.shields.io/badge/Driver-PortAudio-green.svg)](http://www.portaudio.com/)
 
+A low-latency, real-time frequency visualizer written in Python. It captures live input from a microphone or streams an existing `.wav` file, computes the Real Fast Fourier Transform (RFFT) on windowed sample blocks, and renders the dynamic frequency response curve alongside real-time dominant pitch tracking.
 
-A low-latency, real-time audio frequency visualizer built with Python. This project captures live input from a microphone or streams an existing `.wav` file, computes the Real Fast Fourier Transform (RFFT) on windowed sample blocks, and renders the dynamic frequency response curve with automated peak pitch detection.
+---
 
+## Features
 
+* **Dual Input Modes:** Seamlessly toggle between live microphone streaming (`sounddevice`) and synchronized `.wav` playback/analysis (`soundfile`).
+* **Non-Blocking Architecture:** Decoupled audio acquisition and UI rendering via thread-safe double buffering (`queue.Queue`) to prevent frame drops.
+* **Leakage Reduction:** Standard Hanning windowing applied per temporal frame prior to RFFT computation.
+* **Perceptual Log Scaling:** Frequency axis ranges from **20 Hz to 22.05 kHz** on a logarithmic scale to mirror human pitch perception.
+* **Peak Frequency Tracking:** Automated real-time extraction and overlay of the dominant fundamental frequency.
 
-\---
+---
 
+## Signal Processing Pipeline
 
+The signal pipeline converts continuous acoustic energy into calibrated frequency bins through standard discrete-time processing:
 
-\## Key Features
+### 1. Discrete Fourier Transform (DFT / RFFT)
+Converts time-domain audio samples $x[n]$ into frequency-domain components $X[k]$:
 
+$$X[k] = \sum_{n=0}^{N-1} x[n] \cdot e^{-j 2\pi k n / N}$$
 
+### 2. Nyquist-Shannon Bandwidth
+At a sample rate of $f_s = 44.1\text{ kHz}$, the observable bandwidth is bounded by the Nyquist limit:
 
-\- \*\*Dual Audio Input Modes:\*\* Supports live microphone streaming via PortAudio (`sounddevice`) or synchronized `.wav` playback and analysis via `soundfile`.
+$$f_{\max} \le \frac{f_s}{2} = 22.05\text{ kHz}$$
 
-\- \*\*Real-Time FFT Pipeline:\*\* Computes Fast Fourier Transforms asynchronously using thread-safe double buffering (`queue.Queue`) to prevent UI frame drops.
+### 3. Spectral Bin Resolution
+Frequency resolution is defined by block size ($N = 2048$):
 
-\- \*\*Spectral Leakage Suppression:\*\* Applies a Hanning window across temporal frames prior to transform execution.
+$$\Delta f = \frac{f_s}{N} = \frac{44100\text{ Hz}}{2048} \approx 21.53\text{ Hz}$$
 
-\- \*\*Logarithmic Frequency Scale:\*\* Displays $20\\text{ Hz} - 22.05\\text{ kHz}$ on a log axis to model human auditory perception.
+---
 
-\- \*\*Dominant Pitch Tracker:\*\* Automatically detects and displays the fundamental/peak frequency (in Hz) in real time.
+## Technical Specifications
 
+| Parameter | Value | Description |
+| :--- | :--- | :--- |
+| **Sample Rate ($f_s$)** | `44,100 Hz` | Standard CD-quality sampling rate |
+| **Block Size ($N$)** | `2048 samples` | Temporal frame size (~46.4 ms window) |
+| **Window Function** | Hann / Hanning | Suppresses boundary-induced spectral leakage |
+| **Frequency Range** | `20 Hz – 22,050 Hz` | Standard audible acoustic spectrum |
+| **Buffering** | Lock-free queue | Decouples audio callback thread from GUI |
 
+---
 
-\---
+## Getting Started
 
+### Prerequisites
 
+* Python 3.8+
+* PortAudio (bundled with wheels on Windows/macOS; Linux may require `sudo apt-get install libportaudio2`)
 
-\## Core Engineering \& ECE Principles
+### Installation
 
-
-
-1\. \*\*Discrete Fourier Transform (DFT / FFT):\*\*
-
-&#x20;  Converts discrete time-domain audio samples $x\[n]$ into frequency-domain spectral components $X\[k]$:
-
-&#x20;  $$X\[k] = \\sum\_{n=0}^{N-1} x\[n] \\cdot e^{-j 2\\pi k n / N}$$
-
-
-
-2\. \*\*Nyquist-Shannon Sampling Theorem:\*\*
-
-&#x20;  With a standard sampling frequency of $f\_s = 44.1\\text{ kHz}$, the observable bandwidth is strictly bounded by the Nyquist limit:
-
-&#x20;  $$f\_{\\text{max}} \\le \\frac{f\_s}{2} = 22.05\\text{ kHz}$$
-
-
-
-3\. \*\*Spectral Resolution:\*\*
-
-&#x20;  The frequency bin resolution is determined by the frame block size ($N = 2048$):
-
-&#x20;  $$\\Delta f = \\frac{f\_s}{N} = \\frac{44100}{2048} \\approx 21.53\\text{ Hz}$$
-
-
-
-\---
-
-
-
-\## Getting Started
-
-
-
-\### Prerequisites
-
-
-
-\- Python 3.8+
-
-\- PortAudio drivers (pre-packaged with wheels on Windows/macOS)
-
-
-
-\### Installation
-
-
-
-Clone the repository and install dependencies:
-
-
-
-\\`\\`\\`bash
-
-git clone https://github.com/<your-username>/realtime-audio-fft-visualizer.git
-
+```bash
+git clone [https://github.com/Ajil07/realtime-audio-fft-visualizer.git](https://github.com/username/realtime-audio-fft-visualizer.git)
 cd realtime-audio-fft-visualizer
-
 pip install -r requirements.txt
-
-\\`\\`\\`
-
-
-
-\### Running the Visualizer
-
-
-
-Launch the script using Python:
-
-
-
-\\`\\`\\`bash
-
-python realtime\_fft.py
-
-\\`\\`\\`
-
-\*(On Windows, you can also use `py realtime\_fft.py`)\*.
-
-
-
-1\. Press `1` for live microphone capture.
-
-2\. Press `2` to supply the path to a `.wav` file for concurrent playback and spectral inspection.
-
-
-
-\---
-
-
-
-\## Project Structure
-
-
-
-\\`\\`\\`text
-
-├── realtime\_fft.py     # Main application script (audio engine \& GUI)
-
-├── requirements.txt    # Python library dependencies
-
-├── .gitignore          # Build, bytecode, and cache exclusions
-
-└── README.md           # Engineering documentation \& manual
-
-\\`\\`\\`
-
